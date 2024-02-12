@@ -16,12 +16,31 @@ class Chip8
 
 public:
 	Chip8(){
-		initializeSprites();
+		loadSpritesToMemory();
 	}
 
+	void initialize()
+	{
+		program_counter = 0x200;
+		current_opcode = 0;
+		index_register = 0;
+		stack_pointer = 0;
+		std::fill(graphics.begin(), graphics.end(), 0);
+		std::fill(stack.begin(), stack.end(), 0);
+		std::fill(registers.begin(), registers.end(), 0);
+		std::fill(memory.begin(), memory.end(), 0);
+		loadSpritesToMemory();
+		delayed_timer = 0;
+		sound_timer = 0;
+	}
+
+	void emulateCycle()
+	{
+
+	}
 
 private:
-	void initializeSprites()
+	void loadSpritesToMemory()
 	{
 		std::array<Bit8, 80> sprites = {
 			0xF0, 0x90, 0x90, 0x90, 0xF0, // "0"
