@@ -7,6 +7,9 @@
 #include <cstddef>
 #include <vector>
 #include <array>
+#include <string>
+#include <fstream>
+#include <iostream>
 template<size_t memory_in_bytes, size_t number_of_registers, size_t width_in_pixels, size_t height_in_pixels,
 	size_t number_of_stack_levels, size_t number_of_keys>
 class Chip8
@@ -17,6 +20,29 @@ class Chip8
 public:
 	Chip8(){
 		loadSpritesToMemory();
+	}
+
+	std::vector<Bit8> load_program(const std::string & filename)
+	{
+		std::ifstream file(filename, std::ios::binary | std::ios::ate);
+		if (!file) {
+			std::cerr << "Failed to open file: " << filename << std::endl;
+			return {};
+		}
+		std::streamsize size = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		std::vector<Bit8> buffer(size);
+		if(file.read(reinterpret_cast<char*>(buffer.data()),size))
+		{
+			return buffer;
+		}
+		else
+		{
+			std::cerr << "Error while reading file: " << filename << std::endl;
+			return {};
+
+		}
 	}
 
 	void initialize()
