@@ -8,7 +8,7 @@
 #include <vector>
 #include <array>
 #include <string>
-#include <fstream>
+#include <fstream>+
 #include <iostream>
 template<size_t memory_in_bytes, size_t number_of_registers, size_t width_in_pixels, size_t height_in_pixels,
 	size_t number_of_stack_levels, size_t number_of_keys>
@@ -43,6 +43,11 @@ public:
 			return {};
 
 		}
+	}
+
+	void fetch_operation_code()
+	{
+		current_opcode = memory[program_counter++] << 8 | memory[program_counter++];
 	}
 
 	void initialize()
