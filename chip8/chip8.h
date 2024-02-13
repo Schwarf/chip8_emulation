@@ -62,7 +62,15 @@ public:
 
 	void emulateCycle()
 	{
+		current_opcode = memory[program_counter] << 8 | memory[program_counter + 1];
 
+		if (delayed_timer > 0)
+			--delayed_timer;
+		if (sound_timer > 0) {
+			if (sound_timer == 1)
+				printf("BEEP!\n");
+			--sound_timer;
+		}
 	}
 
 private:
