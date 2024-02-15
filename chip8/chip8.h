@@ -10,6 +10,8 @@
 #include <string>
 #include <fstream>+
 #include <iostream>
+#include <unordered_map>
+#include <functional>
 template<size_t memory_in_bytes, size_t number_of_registers, size_t width_in_pixels, size_t height_in_pixels,
 	size_t number_of_stack_levels, size_t number_of_keys>
 class Chip8
@@ -18,11 +20,12 @@ class Chip8
 	using Bit8 = unsigned char;
 
 public:
-	Chip8(){
+	Chip8()
+	{
 		loadSpritesToMemory();
 	}
 
-	std::vector<Bit8> load_program(const std::string & filename)
+	std::vector<Bit8> load_program(const std::string &filename)
 	{
 		std::ifstream file(filename, std::ios::binary | std::ios::ate);
 		if (!file) {
@@ -33,12 +36,10 @@ public:
 		file.seekg(0, std::ios::beg);
 
 		std::vector<Bit8> buffer(size);
-		if(file.read(reinterpret_cast<char*>(buffer.data()),size))
-		{
+		if (file.read(reinterpret_cast<char *>(buffer.data()), size)) {
 			return buffer;
 		}
-		else
-		{
+		else {
 			std::cerr << "Error while reading file: " << filename << std::endl;
 			return {};
 
@@ -52,11 +53,12 @@ public:
 
 	void initialize()
 	{
+
 		program_counter = 0x200;
 		current_opcode = 0;
 		index_register = 0;
 		stack_pointer = 0;
-		std::fill(graphics.begin(), graphics.end(), 0);
+		clearScreen();
 		std::fill(stack.begin(), stack.end(), 0);
 		std::fill(registers.begin(), registers.end(), 0);
 		std::fill(memory.begin(), memory.end(), 0);
@@ -79,6 +81,29 @@ public:
 	}
 
 private:
+	void clearScreen()
+	{
+		std::fill(graphics.begin(), graphics.end(), 0);
+	}
+
+	void returnFromSubroutine()
+	{
+		stack_pointer--;
+		program_counter = stack[stack_pointer];
+		program_counter += 2;
+	}
+
+	void jumpToAddress()
+	{
+
+	}
+
+	void initializeOpcodeMap()
+	{
+		opcodeMap[0x00E0] = [this]() { this->clearScreen(); };
+		opcodeMap[0x00EE] = [this]() { this->returnFromSubroutine(); };
+	}
+
 	void loadSpritesToMemory()
 	{
 		std::array<Bit8, 80> sprites = {
@@ -103,20 +128,19 @@ private:
 		std::copy(sprites.begin(), sprites.end(), memory.begin());
 	}
 
-
 	std::array<Bit8, memory_in_bytes> memory{};
 	std::array<Bit8, number_of_registers> registers{};
 	std::array<Bit8, width_in_pixels * height_in_pixels> graphics{};
 	std::array<Bit8, number_of_stack_levels> stack{};
 	std::array<Bit8, number_of_keys> keypad{};
+	std::unordered_map<int, std::function<void()>> opcodeMap;
+
 	Bit16 current_opcode{};
 	Bit16 index_register{};
 	Bit16 program_counter = 0x200;
 	Bit8 stack_pointer{};
 	Bit8 delayed_timer{};
 	Bit8 sound_timer{};
-
-
 
 };
 
