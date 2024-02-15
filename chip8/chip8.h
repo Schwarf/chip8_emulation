@@ -70,7 +70,7 @@ public:
 	void emulateCycle()
 	{
 		current_opcode = memory[program_counter] << 8 | memory[program_counter + 1];
-
+		// MIssing
 		if (delayed_timer > 0)
 			--delayed_timer;
 		if (sound_timer > 0) {
@@ -80,6 +80,8 @@ public:
 		}
 	}
 
+
+
 private:
 	void clearScreen()
 	{
@@ -88,20 +90,31 @@ private:
 
 	void returnFromSubroutine()
 	{
-		stack_pointer--;
+		--stack_pointer;
 		program_counter = stack[stack_pointer];
 		program_counter += 2;
 	}
 
 	void jumpToAddress()
 	{
-
+		program_counter = current_opcode & 0x0FFF;
 	}
+
+	void jumptToSubroutine()
+	{
+		stack[stack_pointer] = program_counter;
+		++stack_pointer;
+		program_counter = current_opcode & 0x0FFF;
+	}
+
 
 	void initializeOpcodeMap()
 	{
 		opcodeMap[0x00E0] = [this]() { this->clearScreen(); };
 		opcodeMap[0x00EE] = [this]() { this->returnFromSubroutine(); };
+		opcodeMap[0x1000] = [this]() { this->jumpToAddress(); };
+		opcodeMap[0x2000] = [this]() { this->jumptToSubroutine();};
+		
 	}
 
 	void loadSpritesToMemory()
