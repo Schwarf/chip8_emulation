@@ -82,7 +82,6 @@ public:
 	}
 
 
-
 private:
 	void clearScreen()
 	{
@@ -108,14 +107,92 @@ private:
 		program_counter = current_opcode & 0x0FFF;
 	}
 
+	// 0x3XNN: Skips the next instruction if VX equals NN
+	void skipNextInstructionIfRegisterDoesMatch()
+	{
+		const int register_index = (current_opcode & 0x0F00) >> 8;
+		const int value = (current_opcode & 0x00FF);
+		program_counter += 2;
+		if (value == registers[register_index]) {
+			program_counter += 2;
+		}
+	}
+
+	// 0x4XNN: Skips the next instruction if VX NOT equals NN
+	void skipNextInstructionIfRegisterDoesNotMatch()
+	{
+		const int register_index = (current_opcode & 0x0F00) >> 8;
+		const int value = (current_opcode & 0x00FF);
+		program_counter += 2;
+		if (value != registers[register_index]) {
+			program_counter += 2;
+		}
+	}
+
+	void skipNextInstructionIfRegisterMatch()
+	{
+		const int register_index1 = (current_opcode & 0x0F00) >> 8;
+		const int register_index2 = (current_opcode & 0x00F0) >> 4;
+		program_counter += 2;
+		if (registers[register_index1] == registers[register_index2]) {
+			program_counter += 2;
+		}
+	}
+
+	void setValueInRegister()
+	{
+		const int register_index = (current_opcode & 0x0F00) >> 8;
+		const int value_to_set = (current_opcode & 0x00FF);
+		registers[register_index] = value_to_set;
+		program_counter+=2;
+	}
+
+	void addsValueToRegister()
+	{
+		const int register_index = (current_opcode & 0x0F00) >> 8;
+		const int value_to_add = (current_opcode & 0x00FF);
+		registers[register_index] += value_to_add;
+		program_counter+=2;
+	}
+
+	void twoRegisterOperations()
+	{
+		const int register_index = (current_opcode & 0x0F00) >> 8;
+		const int value_to_add = (current_opcode & 0x00FF);
+		registers[register_index] += value_to_add;
+		program_counter+=2;
+	}
+
 
 	void initializeOpcodeMap()
 	{
-		opcodeMap[0x00E0] = [this]() { this->clearScreen(); };
-		opcodeMap[0x00EE] = [this]() { this->returnFromSubroutine(); };
-		opcodeMap[0x1000] = [this]() { this->jumpToAddress(); };
-		opcodeMap[0x2000] = [this]() { this->jumptToSubroutine();};
-		
+		opcodeMap[0x00E0] = [this]()
+		{ this->clearScreen(); };
+		opcodeMap[0x00EE] = [this]()
+		{ this->returnFromSubroutine(); };
+		opcodeMap[0x1000] = [this]()
+		{ this->jumpToAddress(); };
+		// 0x2NNN: Calls subroutine at NNN.
+		opcodeMap[0x2000] = [this]()
+		{ this->jumptToSubroutine(); };
+		// 0x3XNN: Skips the next instruction if VX equals NN
+		opcodeMap[0x3000] = [this]()
+		{ this->skipNextInstructionIfRegisterDoesMatch(); };
+		// 0x4XNN: Skips the next instruction if VX NOT equals NN
+		opcodeMap[0x4000] = [this]()
+		{ this->skipNextInstructionIfRegisterDoesNotMatch(); };
+		// 0x5XY0: Skips the next instruction if VX equals VY.
+		opcodeMap[0x5000] = [this]()
+		{ this->skipNextInstructionIfRegisterMatch(); };
+		// 0x6XNN: Sets VX to NN.
+		opcodeMap[0x6000] = [this]()
+		{this->setValueInRegister();};
+		// 0x7XNN: Adds NN to VX.
+		opcodeMap[0x6000] = [this]()
+		{this->addsValueToRegister();};
+		// 0x8XYZ: Two register operations
+		opcodeMap[0x6000] = [this]()
+		{this->twoRegisterOperations();};
 
 	}
 
