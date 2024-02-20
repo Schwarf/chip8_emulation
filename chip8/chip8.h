@@ -8,7 +8,7 @@
 #include <vector>
 #include <array>
 #include <string>
-#include <fstream>+
+#include <fstream>
 #include <iostream>
 #include <unordered_map>
 #include <functional>
@@ -23,6 +23,7 @@ public:
 	Chip8()
 	{
 		loadSpritesToMemory();
+		initializeOpcodeMap();
 	}
 
 	std::vector<Bit8> load_program(const std::string &filename)
@@ -115,6 +116,7 @@ private:
 		opcodeMap[0x1000] = [this]() { this->jumpToAddress(); };
 		opcodeMap[0x2000] = [this]() { this->jumptToSubroutine();};
 		
+
 	}
 
 	void loadSpritesToMemory()
