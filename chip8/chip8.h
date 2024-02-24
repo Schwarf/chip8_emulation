@@ -144,7 +144,7 @@ private:
 		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value_to_set = (current_opcode & 0x00FF);
 		registers[register_index] = value_to_set;
-		program_counter+=2;
+		program_counter += 2;
 	}
 
 	void addsValueToRegister()
@@ -152,7 +152,7 @@ private:
 		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value_to_add = (current_opcode & 0x00FF);
 		registers[register_index] += value_to_add;
-		program_counter+=2;
+		program_counter += 2;
 	}
 
 	void twoRegisterOperations()
@@ -160,10 +160,37 @@ private:
 		const int register_index1 = (current_opcode & 0x0F00) >> 8;
 		const int register_index2 = (current_opcode & 0x00F0) >> 4;
 		const int operation_index = (current_opcode & 0x000F);
-
+		if(twoRegisterOperationsMap.find(operation_index) == twoRegisterOperationsMap.end())
+		{
+			std::cerr << "Invalid operations_index for two register operations: "<< operation_index << std::endl;
+			return;
+		}
+		twoRegisterOperationsMap[operation_index](register_index1, register_index2);
 
 	}
 
+	void initializeTwoRegisterOperations()
+	{
+		twoRegisterOperationsMap[0] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualTwo(register_index1, register_index2); };
+		twoRegisterOperationsMap[1] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualOneOrTwo(register_index1, register_index2); };
+		twoRegisterOperationsMap[2] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualOneAndTwo(register_index1, register_index2); };
+		twoRegisterOperationsMap[3] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualOneXorTwo(register_index1, register_index2); };
+		twoRegisterOperationsMap[4] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualOnePlusTwo(register_index1, register_index2); };
+		twoRegisterOperationsMap[5] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualOneMinusTwo(register_index1, register_index2); };
+		twoRegisterOperationsMap[6] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualRightShiftOne(register_index1, register_index2); };
+		twoRegisterOperationsMap[7] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualTwoMinusOne(register_index1, register_index2); };
+		twoRegisterOperationsMap[14] = [this](const int register_index1, const int register_index2)
+		{ this->oneEqualLeftShiftOne(register_index1, register_index2); };
+
+	}
 
 	void initializeOpcodeMap()
 	{
@@ -187,35 +214,79 @@ private:
 		{ this->skipNextInstructionIfRegisterMatch(); };
 		// 0x6XNN: Sets VX to NN.
 		opcodeMap[0x6000] = [this]()
-		{this->setValueInRegister();};
+		{ this->setValueInRegister(); };
 		// 0x7XNN: Adds NN to VX.
 		opcodeMap[0x7000] = [this]()
-		{this->addsValueToRegister();};
+		{ this->addsValueToRegister(); };
 		// 0x8XYZ: Two register operations
 		opcodeMap[0x8000] = [this]()
-		{this->twoRegisterOperations();};
-
+		{ this->twoRegisterOperations(); };
 
 	}
 
-	void setRegisterOneToRegisterTwo(const int register_index1, const int register_index2)
+	inline void oneEqualTwo(const int register_index1, const int register_index2)
 	{
 		registers[register_index1] = registers[register_index2];
 	}
 
-	void setRegisterOneToRegisterOneORTwo(const int register_index1, const int register_index2)
+	inline void oneEqualOneOrTwo(const int register_index1, const int register_index2)
 	{
 		registers[register_index1] = registers[register_index2] | registers[register_index1];
 	}
 
-	void setRegisterOneToRegisterOneANDTwo(const int register_index1, const int register_index2)
+	inline void oneEqualOneAndTwo(const int register_index1, const int register_index2)
 	{
 		registers[register_index1] = registers[register_index2] & registers[register_index1];
 	}
 
-	void setRegisterOneToRegisterOneXORTwo(const int register_index1, const int register_index2)
+	void oneEqualOneXorTwo(const int register_index1, const int register_index2)
 	{
 		registers[register_index1] = registers[register_index2] ^ registers[register_index1];
+	}
+
+	void oneEqualOnePlusTwo(const int register_index1, const int register_index2)
+	{
+		// max value is 0xFF. if value stored in index2 is greater than 0xFF minus value stored in index1 we have a carry
+		registers[number_of_registers - 1] = 0;
+		if (registers[register_index2] > 0xFF - registers[register_index1]) {
+			registers[number_of_registers - 1] = 1;// set carry
+		}
+		registers[register_index1] += registers[register_index2];
+	}
+
+	void oneEqualOneMinusTwo(const int register_index1, const int register_index2)
+	{
+		// if value in register_index2 is larger than value stored at register_index1 then we have a borrow
+		registers[number_of_registers - 1] = 1;
+		if (registers[register_index2] > registers[register_index1]) {
+			registers[number_of_registers - 1] = 0;// set borrow
+		}
+		registers[register_index1] -= registers[register_index2];
+	}
+
+	void oneEqualRightShiftOne(const int register_index1, const int register_index2)
+	{
+		// Shifts value at index1 right by one. The last register is set to the value of the least significant bit of the register with index1 before the shift
+		//  We store least significant bit of
+		registers[number_of_registers-1] = registers[register_index1] & 0x1;
+		registers[register_index1] >>=1;
+	}
+
+	void oneEqualLeftShiftOne(const int register_index1, const int register_index2)
+	{
+		// Shifts value at index1 right by one. The last register is set to the value of the most significant bit of the register with index1 before the shift
+		//  We store most significant bit of
+		registers[number_of_registers-1] = registers[register_index1] >> 7;
+		registers[register_index1] <<=1;
+	}
+
+	void oneEqualTwoMinusOne(const int register_index1, const int register_index2)
+	{
+		registers[number_of_registers - 1] = 1;
+		if (registers[register_index1] > registers[register_index2]) {
+			registers[number_of_registers - 1] = 0;// set borrow
+		}
+		registers[register_index1] = registers[register_index2] - registers[register_index1];
 	}
 
 	void loadSpritesToMemory()
