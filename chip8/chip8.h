@@ -188,11 +188,12 @@ private:
 		opcodeMap[0x6000] = [this]()
 		{this->setValueInRegister();};
 		// 0x7XNN: Adds NN to VX.
-		opcodeMap[0x6000] = [this]()
+		opcodeMap[0x7000] = [this]()
 		{this->addsValueToRegister();};
 		// 0x8XYZ: Two register operations
-		opcodeMap[0x6000] = [this]()
+		opcodeMap[0x8000] = [this]()
 		{this->twoRegisterOperations();};
+
 
 	}
 
