@@ -24,6 +24,7 @@ public:
 	{
 		loadSpritesToMemory();
 		initializeOpcodeMap();
+		initializeTwoRegisterOperations();
 	}
 
 	std::vector<Bit8> load_program(const std::string &filename)
@@ -66,6 +67,7 @@ public:
 		loadSpritesToMemory();
 		delayed_timer = 0;
 		sound_timer = 0;
+
 	}
 
 	void emulateCycle()
@@ -78,6 +80,19 @@ public:
 			if (sound_timer == 1)
 				printf("BEEP!\n");
 			--sound_timer;
+		}
+
+		if(skip_instruction) {
+			program_counter += 4;
+			skip_instruction = false;
+		}
+		else if(advance_program_counter)
+		{
+			program_counter +=2;
+		}
+		else
+		{
+			advance_program_counter = true;
 		}
 	}
 
@@ -92,12 +107,12 @@ private:
 	{
 		--stack_pointer;
 		program_counter = stack[stack_pointer];
-		program_counter += 2;
 	}
 
 	void jumpToAddress()
 	{
 		program_counter = current_opcode & 0x0FFF;
+		advance_program_counter = false;
 	}
 
 	void jumptToSubroutine()
@@ -105,6 +120,7 @@ private:
 		stack[stack_pointer] = program_counter;
 		++stack_pointer;
 		program_counter = current_opcode & 0x0FFF;
+		advance_program_counter = false;
 	}
 
 	// 0x3XNN: Skips the next instruction if VX equals NN
@@ -112,9 +128,8 @@ private:
 	{
 		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value = (current_opcode & 0x00FF);
-		program_counter += 2;
 		if (value == registers[register_index]) {
-			program_counter += 2;
+			skip_instruction = true;
 		}
 	}
 
@@ -123,9 +138,8 @@ private:
 	{
 		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value = (current_opcode & 0x00FF);
-		program_counter += 2;
 		if (value != registers[register_index]) {
-			program_counter += 2;
+			skip_instruction = true;
 		}
 	}
 
@@ -133,9 +147,8 @@ private:
 	{
 		const int register_index1 = (current_opcode & 0x0F00) >> 8;
 		const int register_index2 = (current_opcode & 0x00F0) >> 4;
-		program_counter += 2;
 		if (registers[register_index1] == registers[register_index2]) {
-			program_counter += 2;
+			skip_instruction = true;
 		}
 	}
 
@@ -144,7 +157,6 @@ private:
 		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value_to_set = (current_opcode & 0x00FF);
 		registers[register_index] = value_to_set;
-		program_counter += 2;
 	}
 
 	void addsValueToRegister()
@@ -152,7 +164,6 @@ private:
 		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value_to_add = (current_opcode & 0x00FF);
 		registers[register_index] += value_to_add;
-		program_counter += 2;
 	}
 
 	void twoRegisterOperations()
@@ -166,19 +177,25 @@ private:
 			return;
 		}
 		twoRegisterOperationsMap[operation_index](register_index1, register_index2);
-		program_counter+=2;
 	}
 
 	void setIndexRegister()
 	{
 		index_register = current_opcode & 0x0FFF;
-		program_counter +=2;
 	}
 
 	void jumpToAddressPlusRegisterZero()
 	{
 		program_counter = (current_opcode & 0x0FFF) + registers[0];
+		advance_program_counter = false;
 	}
+
+	void setRegisterToRandom()
+	{
+		const int register_index =  (current_opcode & 0x0F00) >> 8;
+		registers[register_index] = (rand() % 0xFF)	& (current_opcode & 0x00FF);
+	}
+
 
 
 	void initializeTwoRegisterOperations()
@@ -207,6 +224,7 @@ private:
 	void initializeOpcodeMap()
 	{
 		opcodeMap[0x00E0] = [this]()
+
 		{ this->clearScreen(); };
 		opcodeMap[0x00EE] = [this]()
 		{ this->returnFromSubroutine(); };
@@ -239,8 +257,37 @@ private:
 		{ this->setIndexRegister(); };
 		opcodeMap[0xB000] = [this]()
 		{ this->jumpToAddressPlusRegisterZero(); };
+		opcodeMap[0xC000] = [this]()
+		{ this->setRegisterToRandom(); };
 
+		opcodeMap[0xD000] = [this]()
+		{ this->drawASprite(); };
 
+	}
+
+	void drawASprite()
+	{
+		const int register_index1 = (current_opcode & 0x0F00) >> 8;
+		const int register_index2 = (current_opcode & 0x0F0) >> 4;
+		auto x = registers[register_index1];
+		auto y = registers[register_index2];
+		unsigned short height = current_opcode & 0x000F;
+		registers[number_of_registers-1] = 0;
+		for(int y_line{}; y_line< height; ++y_line)
+		{
+			unsigned short pixel = memory[index_register + y_line];
+			for(int x_line{}; x_line< height; ++x_line) {
+				if((pixel & (0x80 >> x_line)) != 0)
+				{
+					if(graphics[(x + x_line + ((y + y_line) * 64))] == 1)
+					{
+						registers[number_of_registers-1] = 1;
+					}
+					graphics[x + x_line + ((y + y_line) * 64)] ^= 1;
+				}
+			}
+		}
+		draw_flag = true;
 	}
 
 	inline void oneEqualTwo(const int register_index1, const int register_index2)
@@ -312,10 +359,9 @@ private:
 	{
 		const int register_index1 = (current_opcode & 0x0F00) >> 8;
 		const int register_index2 = (current_opcode & 0x00F0) >> 4;
-		program_counter += 2;
 
 		if(registers[register_index1] != registers[register_index2])
-			program_counter+=2;
+			skip_instruction = true;
 	}
 
 
@@ -357,6 +403,9 @@ private:
 	Bit8 stack_pointer{};
 	Bit8 delayed_timer{};
 	Bit8 sound_timer{};
+	bool advance_program_counter{true};
+	bool skip_instruction{false};
+	bool draw_flag{false};
 
 };
 
