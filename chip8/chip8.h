@@ -157,10 +157,11 @@ private:
 
 	void twoRegisterOperations()
 	{
-		const int register_index = (current_opcode & 0x0F00) >> 8;
-		const int value_to_add = (current_opcode & 0x00FF);
-		registers[register_index] += value_to_add;
-		program_counter+=2;
+		const int register_index1 = (current_opcode & 0x0F00) >> 8;
+		const int register_index2 = (current_opcode & 0x00F0) >> 4;
+		const int operation_index = (current_opcode & 0x000F);
+
+
 	}
 
 
@@ -197,6 +198,26 @@ private:
 
 	}
 
+	void setRegisterOneToRegisterTwo(const int register_index1, const int register_index2)
+	{
+		registers[register_index1] = registers[register_index2];
+	}
+
+	void setRegisterOneToRegisterOneORTwo(const int register_index1, const int register_index2)
+	{
+		registers[register_index1] = registers[register_index2] | registers[register_index1];
+	}
+
+	void setRegisterOneToRegisterOneANDTwo(const int register_index1, const int register_index2)
+	{
+		registers[register_index1] = registers[register_index2] & registers[register_index1];
+	}
+
+	void setRegisterOneToRegisterOneXORTwo(const int register_index1, const int register_index2)
+	{
+		registers[register_index1] = registers[register_index2] ^ registers[register_index1];
+	}
+
 	void loadSpritesToMemory()
 	{
 		std::array<Bit8, 80> sprites = {
@@ -227,6 +248,7 @@ private:
 	std::array<Bit8, number_of_stack_levels> stack{};
 	std::array<Bit8, number_of_keys> keypad{};
 	std::unordered_map<int, std::function<void()>> opcodeMap;
+	std::unordered_map<int, std::function<void(const int register1, const int register2)>> twoRegisterOperationsMap;
 
 	Bit16 current_opcode{};
 	Bit16 index_register{};
