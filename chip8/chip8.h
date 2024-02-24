@@ -166,8 +166,20 @@ private:
 			return;
 		}
 		twoRegisterOperationsMap[operation_index](register_index1, register_index2);
-
+		program_counter+=2;
 	}
+
+	void setIndexRegister()
+	{
+		index_register = current_opcode & 0x0FFF;
+		program_counter +=2;
+	}
+
+	void jumpToAddressPlusRegisterZero()
+	{
+		program_counter = (current_opcode & 0x0FFF) + registers[0];
+	}
+
 
 	void initializeTwoRegisterOperations()
 	{
@@ -221,6 +233,13 @@ private:
 		// 0x8XYZ: Two register operations
 		opcodeMap[0x8000] = [this]()
 		{ this->twoRegisterOperations(); };
+		opcodeMap[0x9000] = [this]()
+		{ this->skipNextInstructionIfRegisterDoesNotMatch(); };
+		opcodeMap[0xA000] = [this]()
+		{ this->setIndexRegister(); };
+		opcodeMap[0xB000] = [this]()
+		{ this->jumpToAddressPlusRegisterZero(); };
+
 
 	}
 
@@ -288,6 +307,17 @@ private:
 		}
 		registers[register_index1] = registers[register_index2] - registers[register_index1];
 	}
+
+	void skipNextInstructionIfRegisterValueAreNotEqual()
+	{
+		const int register_index1 = (current_opcode & 0x0F00) >> 8;
+		const int register_index2 = (current_opcode & 0x00F0) >> 4;
+		program_counter += 2;
+
+		if(registers[register_index1] != registers[register_index2])
+			program_counter+=2;
+	}
+
 
 	void loadSpritesToMemory()
 	{
