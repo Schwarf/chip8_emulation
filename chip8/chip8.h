@@ -115,7 +115,7 @@ private:
 		advance_program_counter = false;
 	}
 
-	void jumptToSubroutine()
+	void jumpToSubroutine()
 	{
 		stack[stack_pointer] = program_counter;
 		++stack_pointer;
@@ -190,12 +190,30 @@ private:
 		advance_program_counter = false;
 	}
 
-	void setRegisterToRandom()
+	void setRegisterToRandomValue()
 	{
 		const int register_index =  (current_opcode & 0x0F00) >> 8;
 		registers[register_index] = (rand() % 0xFF)	& (current_opcode & 0x00FF);
 	}
 
+	void skipInstructionKeyRegister()
+	{
+		int decision = current_opcode & 0x00FF;
+		// EX9E: Skips the next instruction if the key stored in register is pressed
+		const int register_index1 = (current_opcode & 0x0F00) >> 8;
+		if(decision == 0x009E && keypad[registers[register_index1]] != 0) {
+				program_counter += 2;
+		}
+			// EX9E: Skips the next instruction if the key stored in register is NOT pressed
+		else if(decision == 0x00A1  && keypad[registers[register_index1]] == 0)
+		{
+			program_counter += 2;
+		}
+		else
+		{
+			std::cerr << "Unknown instruction in 'skopInstructionKeyRegister'" << std::endl;
+		}
+	}
 
 
 	void initializeTwoRegisterOperations()
@@ -232,7 +250,7 @@ private:
 		{ this->jumpToAddress(); };
 		// 0x2NNN: Calls subroutine at NNN.
 		opcodeMap[0x2000] = [this]()
-		{ this->jumptToSubroutine(); };
+		{ this->jumpToSubroutine(); };
 		// 0x3XNN: Skips the next instruction if VX equals NN
 		opcodeMap[0x3000] = [this]()
 		{ this->skipNextInstructionIfRegisterDoesMatch(); };
@@ -258,10 +276,12 @@ private:
 		opcodeMap[0xB000] = [this]()
 		{ this->jumpToAddressPlusRegisterZero(); };
 		opcodeMap[0xC000] = [this]()
-		{ this->setRegisterToRandom(); };
-
+		{ this->setRegisterToRandomValue(); };
 		opcodeMap[0xD000] = [this]()
 		{ this->drawASprite(); };
+		opcodeMap[0xE000] = [this]()
+		{ this->skipInstructionKeyRegister(); };
+
 
 	}
 
