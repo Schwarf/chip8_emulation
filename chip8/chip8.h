@@ -74,6 +74,9 @@ public:
 	{
 		current_opcode = memory[program_counter] << 8 | memory[program_counter + 1];
 		// MIssing
+		register_index1 = (current_opcode & 0x0F00) >> 8;
+		register_index2 = (current_opcode & 0x00F0) >> 4;
+
 		if (delayed_timer > 0)
 			--delayed_timer;
 		if (sound_timer > 0) {
@@ -126,9 +129,8 @@ private:
 	// 0x3XNN: Skips the next instruction if VX equals NN
 	void skipNextInstructionIfRegisterDoesMatch()
 	{
-		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value = (current_opcode & 0x00FF);
-		if (value == registers[register_index]) {
+		if (value == registers[register_index1]) {
 			skip_instruction = true;
 		}
 	}
@@ -136,17 +138,14 @@ private:
 	// 0x4XNN: Skips the next instruction if VX NOT equals NN
 	void skipNextInstructionIfRegisterDoesNotMatch()
 	{
-		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value = (current_opcode & 0x00FF);
-		if (value != registers[register_index]) {
+		if (value != registers[register_index1]) {
 			skip_instruction = true;
 		}
 	}
 
 	void skipNextInstructionIfRegisterMatch()
 	{
-		const int register_index1 = (current_opcode & 0x0F00) >> 8;
-		const int register_index2 = (current_opcode & 0x00F0) >> 4;
 		if (registers[register_index1] == registers[register_index2]) {
 			skip_instruction = true;
 		}
@@ -154,22 +153,18 @@ private:
 
 	void setValueInRegister()
 	{
-		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value_to_set = (current_opcode & 0x00FF);
-		registers[register_index] = value_to_set;
+		registers[register_index1] = value_to_set;
 	}
 
 	void addsValueToRegister()
 	{
-		const int register_index = (current_opcode & 0x0F00) >> 8;
 		const int value_to_add = (current_opcode & 0x00FF);
-		registers[register_index] += value_to_add;
+		registers[register_index1] += value_to_add;
 	}
 
 	void twoRegisterOperations()
 	{
-		const int register_index1 = (current_opcode & 0x0F00) >> 8;
-		const int register_index2 = (current_opcode & 0x00F0) >> 4;
 		const int operation_index = (current_opcode & 0x000F);
 		if(twoRegisterOperationsMap.find(operation_index) == twoRegisterOperationsMap.end())
 		{
@@ -192,15 +187,13 @@ private:
 
 	void setRegisterToRandomValue()
 	{
-		const int register_index =  (current_opcode & 0x0F00) >> 8;
-		registers[register_index] = (rand() % 0xFF)	& (current_opcode & 0x00FF);
+		registers[register_index1] = (rand() % 0xFF)	& (current_opcode & 0x00FF);
 	}
 
 	void skipInstructionKeyRegister()
 	{
 		int decision = current_opcode & 0x00FF;
 		// EX9E: Skips the next instruction if the key stored in register is pressed
-		const int register_index1 = (current_opcode & 0x0F00) >> 8;
 		if(decision == 0x009E && keypad[registers[register_index1]] != 0) {
 				program_counter += 2;
 		}
@@ -218,24 +211,24 @@ private:
 
 	void initializeTwoRegisterOperations()
 	{
-		twoRegisterOperationsMap[0] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualTwo(register_index1, register_index2); };
-		twoRegisterOperationsMap[1] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualOneOrTwo(register_index1, register_index2); };
-		twoRegisterOperationsMap[2] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualOneAndTwo(register_index1, register_index2); };
-		twoRegisterOperationsMap[3] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualOneXorTwo(register_index1, register_index2); };
-		twoRegisterOperationsMap[4] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualOnePlusTwo(register_index1, register_index2); };
-		twoRegisterOperationsMap[5] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualOneMinusTwo(register_index1, register_index2); };
-		twoRegisterOperationsMap[6] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualRightShiftOne(register_index1, register_index2); };
-		twoRegisterOperationsMap[7] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualTwoMinusOne(register_index1, register_index2); };
-		twoRegisterOperationsMap[14] = [this](const int register_index1, const int register_index2)
-		{ this->oneEqualLeftShiftOne(register_index1, register_index2); };
+		twoRegisterOperationsMap[0] = [this]()
+		{ this->oneEqualTwo(); };
+		twoRegisterOperationsMap[1] = [this]()
+		{ this->oneEqualOneOrTwo(); };
+		twoRegisterOperationsMap[2] = [this]()
+		{ this->oneEqualOneAndTwo(); };
+		twoRegisterOperationsMap[3] = [this]()
+		{ this->oneEqualOneXorTwo(); };
+		twoRegisterOperationsMap[4] = [this]()
+		{ this->oneEqualOnePlusTwo(); };
+		twoRegisterOperationsMap[5] = [this]()
+		{ this->oneEqualOneMinusTwo(); };
+		twoRegisterOperationsMap[6] = [this]()
+		{ this->oneEqualRightShiftOne(); };
+		twoRegisterOperationsMap[7] = [this]()
+		{ this->oneEqualTwoMinusOne(); };
+		twoRegisterOperationsMap[14] = [this]()
+		{ this->oneEqualLeftShiftOne(); };
 
 	}
 
@@ -287,8 +280,6 @@ private:
 
 	void drawASprite()
 	{
-		const int register_index1 = (current_opcode & 0x0F00) >> 8;
-		const int register_index2 = (current_opcode & 0x0F0) >> 4;
 		auto x = registers[register_index1];
 		auto y = registers[register_index2];
 		unsigned short height = current_opcode & 0x000F;
@@ -310,27 +301,27 @@ private:
 		draw_flag = true;
 	}
 
-	inline void oneEqualTwo(const int register_index1, const int register_index2)
+	inline void oneEqualTwo()
 	{
 		registers[register_index1] = registers[register_index2];
 	}
 
-	inline void oneEqualOneOrTwo(const int register_index1, const int register_index2)
+	inline void oneEqualOneOrTwo()
 	{
 		registers[register_index1] = registers[register_index2] | registers[register_index1];
 	}
 
-	inline void oneEqualOneAndTwo(const int register_index1, const int register_index2)
+	inline void oneEqualOneAndTwo()
 	{
 		registers[register_index1] = registers[register_index2] & registers[register_index1];
 	}
 
-	void oneEqualOneXorTwo(const int register_index1, const int register_index2)
+	void oneEqualOneXorTwo()
 	{
 		registers[register_index1] = registers[register_index2] ^ registers[register_index1];
 	}
 
-	void oneEqualOnePlusTwo(const int register_index1, const int register_index2)
+	void oneEqualOnePlusTwo()
 	{
 		// max value is 0xFF. if value stored in index2 is greater than 0xFF minus value stored in index1 we have a carry
 		registers[number_of_registers - 1] = 0;
@@ -340,7 +331,7 @@ private:
 		registers[register_index1] += registers[register_index2];
 	}
 
-	void oneEqualOneMinusTwo(const int register_index1, const int register_index2)
+	void oneEqualOneMinusTwo()
 	{
 		// if value in register_index2 is larger than value stored at register_index1 then we have a borrow
 		registers[number_of_registers - 1] = 1;
@@ -350,7 +341,7 @@ private:
 		registers[register_index1] -= registers[register_index2];
 	}
 
-	void oneEqualRightShiftOne(const int register_index1, const int register_index2)
+	void oneEqualRightShiftOne()
 	{
 		// Shifts value at index1 right by one. The last register is set to the value of the least significant bit of the register with index1 before the shift
 		//  We store least significant bit of
@@ -358,7 +349,7 @@ private:
 		registers[register_index1] >>=1;
 	}
 
-	void oneEqualLeftShiftOne(const int register_index1, const int register_index2)
+	void oneEqualLeftShiftOne()
 	{
 		// Shifts value at index1 right by one. The last register is set to the value of the most significant bit of the register with index1 before the shift
 		//  We store most significant bit of
@@ -366,7 +357,7 @@ private:
 		registers[register_index1] <<=1;
 	}
 
-	void oneEqualTwoMinusOne(const int register_index1, const int register_index2)
+	void oneEqualTwoMinusOne()
 	{
 		registers[number_of_registers - 1] = 1;
 		if (registers[register_index1] > registers[register_index2]) {
@@ -377,9 +368,6 @@ private:
 
 	void skipNextInstructionIfRegisterValueAreNotEqual()
 	{
-		const int register_index1 = (current_opcode & 0x0F00) >> 8;
-		const int register_index2 = (current_opcode & 0x00F0) >> 4;
-
 		if(registers[register_index1] != registers[register_index2])
 			skip_instruction = true;
 	}
@@ -426,6 +414,8 @@ private:
 	bool advance_program_counter{true};
 	bool skip_instruction{false};
 	bool draw_flag{false};
+	int register_index1;
+	int register_index2;
 
 };
 
