@@ -249,7 +249,7 @@ private:
 
 	void externalActions()
 	{
-
+		externalActionOperations[current_opcode & 0x00FF]();
 	}
 
 	void initializeOpcodeMap()
