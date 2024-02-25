@@ -48,11 +48,6 @@ public:
 		}
 	}
 
-	void fetch_operation_code()
-	{
-		current_opcode = memory[program_counter++] << 8 | memory[program_counter++];
-	}
-
 	void initialize()
 	{
 
@@ -74,10 +69,11 @@ public:
 	void emulateCycle()
 	{
 		current_opcode = memory[program_counter] << 8 | memory[program_counter + 1];
-		// MIssing
+
 		register_index1 = (current_opcode & 0x0F00) >> 8;
 		register_index2 = (current_opcode & 0x00F0) >> 4;
 
+		opcodeMap[current_opcode & 0xF000];
 		if (delayed_timer > 0)
 			--delayed_timer;
 		if (sound_timer > 0) {
