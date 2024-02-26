@@ -30,6 +30,13 @@ public:
 		initializeTwoRegisterOperations();
 	}
 
+	void load_memory(const std::array<Bit8, memory_in_bytes-512> & memory_to_load)
+	{
+		// first 512 bytes are reserved for interpreter
+		for(int i{}; i < memory_in_bytes-512; ++i)
+			memory[i+512] = memory_to_load[i];
+	}
+
 	std::vector<Bit8> load_program(const std::string &filename)
 	{
 		std::ifstream file(filename, std::ios::binary | std::ios::ate);
