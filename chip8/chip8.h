@@ -12,10 +12,13 @@
 #include <iostream>
 #include <unordered_map>
 #include <functional>
+
+
 template<size_t memory_in_bytes, size_t number_of_registers, size_t width_in_pixels, size_t height_in_pixels,
 	size_t number_of_stack_levels, size_t number_of_keys>
 class Chip8
 {
+	friend class Chip8Test;
 	using Bit16 = unsigned short;
 	using Bit8 = unsigned char;
 
@@ -100,25 +103,34 @@ private:
 	{
 		const int operation_index = (current_opcode & 0x000F);
 		if (twoRegisterOperationsMap.find(operation_index) == twoRegisterOperationsMap.end()) {
-			std::cerr << "Invalid operations_index for two register operations: " << operation_index << std::endl;
-			return;
+			throw std::out_of_range("Invalid operation_index in twoRegisterOperations");
 		}
 		twoRegisterOperationsMap[operation_index]();
 	}
 
+	void externalActions()
+	{
+		const int operation_index = current_opcode & 0x00FF;
+		if(externalActionOperations.find(operation_index) ==  externalActionOperations.end())
+		{
+			throw std::out_of_range("Invalid action in external actions");
+		}
+		externalActionOperations[operation_index]();
+	}
+
 	void skipInstructionKeyRegister()
 	{
-		int decision = current_opcode & 0x00FF;
+		const int decision = current_opcode & 0x00FF;
 		// EX9E: Skips the next instruction if the key stored in register is pressed
 		if (decision == 0x009E && keypad[registers[register_index1]] != 0) {
-			program_counter += 2;
+			skip_instruction = true;
 		}
 			// EX9E: Skips the next instruction if the key stored in register is NOT pressed
 		else if (decision == 0x00A1 && keypad[registers[register_index1]] == 0) {
-			program_counter += 2;
+			skip_instruction = true;
 		}
 		else {
-			std::cerr << "Unknown instruction in 'skopInstructionKeyRegister'" << std::endl;
+			throw std::out_of_range("Invalid decision in skipInstrcutionKeyRegister.");
 		}
 	}
 
@@ -245,11 +257,6 @@ private:
 
 		};
 
-	}
-
-	void externalActions()
-	{
-		externalActionOperations[current_opcode & 0x00FF]();
 	}
 
 	void initializeOpcodeMap()
