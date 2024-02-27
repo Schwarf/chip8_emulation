@@ -82,8 +82,8 @@ public:
 
 		register_index1 = (current_opcode & 0x0F00) >> 8;
 		register_index2 = (current_opcode & 0x00F0) >> 4;
-
-		opcodeMap[current_opcode & 0xF000];
+		auto choose =  current_opcode & 0xF000;
+		opcodeMap[choose]();
 		if (delayed_timer > 0)
 			--delayed_timer;
 		if (sound_timer > 0) {
@@ -269,15 +269,20 @@ private:
 	void initializeOpcodeMap()
 	{
 		// clear screen
-		opcodeMap[0x00E0] = [this]()
+		opcodeMap[0x0000] = [this]()
 		{
-			std::fill(graphics.begin(), graphics.end(), 0);
-		};
-		// return from subroutine
-		opcodeMap[0x00EE] = [this]()
-		{
-			--stack_pointer;
-			program_counter = stack[stack_pointer];
+			if((current_opcode & 0x000F) == 0)
+				std::fill(graphics.begin(), graphics.end(), 0);
+			else if ((current_opcode & 0x000F) == 0x000E)
+			{
+				--stack_pointer;
+				program_counter = stack[stack_pointer];
+
+			}
+			else
+			{
+				throw std::out_of_range("Unknown opcode for: (opcode & 0x000F) == 0");
+			}
 		};
 		// jump to address
 		opcodeMap[0x1000] = [this]()
