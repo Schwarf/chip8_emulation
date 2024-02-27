@@ -4,15 +4,17 @@
 #include "gtest/gtest.h"
 #include "./../chip8/chip8.h"
 
-class Chip8Test : public testing::Test {
-protected:
+class Chip8Test {
+public:
+	explicit Chip8Test() = default;
+
 	static constexpr size_t memory_in_bytes{4096};
 	static constexpr size_t number_of_registers{16};
 	static constexpr size_t width_in_pixels{64};
 	static constexpr size_t height_in_pixels{32};
 	static constexpr size_t number_of_stack_levels{16};
 	static constexpr size_t number_of_keys{16};
-
+	static constexpr size_t memory_offset{512};
 	Chip8<memory_in_bytes, number_of_registers, width_in_pixels, height_in_pixels, number_of_stack_levels, number_of_keys> chip8;
 public:
 
@@ -21,6 +23,17 @@ public:
 	void test(int opcode){
 		chip8.opcodeMap[opcode]();
 	}
+
+	void load_memory(std::array<Bit8, memory_in_bytes - memory_offset> &memory)
+	{
+		chip8.load_memory(memory);
+	}
+
+	void set_graphics(const std::array<Bit8, width_in_pixels*height_in_pixels> & input)
+	{
+		chip8.graphics = input;
+	}
+
 
 	const Bit8 get_register_value(int register_index) const
 	{
@@ -60,7 +73,43 @@ public:
 };
 
 
-TEST(TestChip8, CheckProgramCounter)
+void set_opcode_to_memory_index(const unsigned int opcode, std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> & memory, int memory_index)
 {
+	Chip8Test::Bit8 high_byte = (opcode >> 8) & 0xFF;
+	Chip8Test::Bit8 low_byte = opcode & 0xFF;
+	memory[memory_index] = high_byte;
+	memory[memory_index+1] = low_byte;
+}
 
+TEST(TestChip8, SetProgramCounterToAddress)
+{
+	Chip8Test chip8;
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	constexpr unsigned int opcode = 0x1111;
+	set_opcode_to_memory_index(opcode, memory, 0);
+	chip8.load_memory(memory);
+	chip8.chip8.emulateCycle();
+	const Chip8Test::Bit16 expected_program_counter{0x0111};
+	EXPECT_EQ(opcode, chip8.get_current_opcode());
+	EXPECT_EQ(expected_program_counter, chip8.get_program_counter());
+}
+
+TEST(TestChip8, ClearGraphics)
+{
+	Chip8Test chip8;
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	constexpr unsigned int opcode = 0x00E0;
+	set_opcode_to_memory_index(opcode, memory, 0);
+
+
+	std::array<Chip8Test::Bit8, Chip8Test::width_in_pixels*Chip8Test::height_in_pixels> ones{};
+	std::fill(ones.begin(), ones.end(), 1);
+	chip8.set_graphics(ones);
+	EXPECT_EQ(chip8.get_graphics(), ones);
+	chip8.load_memory(memory);
+	chip8.chip8.emulateCycle();
+//	EXPECT_EQ(opcode, chip8.get_current_opcode());
+//	const Chip8Test::Bit16 expected_program_counter{0x0200 + 2};
+//	const std::array<Chip8Test::Bit8, Chip8Test::width_in_pixels*Chip8Test::height_in_pixels> zeroes{};
+//	EXPECT_EQ(expected_program_counter, chip8.get_program_counter());
 }
