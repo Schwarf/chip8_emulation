@@ -266,13 +266,20 @@ private:
 
 	}
 
+	bool get_draw_flag() const
+	{
+		return draw_flag;
+	}
+
 	void initializeOpcodeMap()
 	{
 		// clear screen
 		opcodeMap[0x0000] = [this]()
 		{
-			if((current_opcode & 0x000F) == 0)
+			if((current_opcode & 0x000F) == 0) {
 				std::fill(graphics.begin(), graphics.end(), 0);
+				draw_flag = true;
+			}
 			else if ((current_opcode & 0x000F) == 0x000E)
 			{
 				--stack_pointer;

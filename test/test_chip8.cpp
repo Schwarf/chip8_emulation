@@ -40,12 +40,17 @@ public:
 		return chip8.registers[register_index];
 	}
 
-	const Bit16 get_current_opcode() const
+	Bit16 get_current_opcode() const
 	{
 		return chip8.current_opcode;
 	}
 
-	const Bit16 get_program_counter() const
+	Bit16 get_draw_flag() const
+	{
+		return chip8.get_draw_flag();
+	}
+
+	Bit16 get_program_counter() const
 	{
 		return chip8.program_counter;
 	}
@@ -108,8 +113,10 @@ TEST(TestChip8, ClearGraphics)
 	EXPECT_EQ(chip8.get_graphics(), ones);
 	chip8.load_memory(memory);
 	chip8.chip8.emulateCycle();
-//	EXPECT_EQ(opcode, chip8.get_current_opcode());
-//	const Chip8Test::Bit16 expected_program_counter{0x0200 + 2};
-//	const std::array<Chip8Test::Bit8, Chip8Test::width_in_pixels*Chip8Test::height_in_pixels> zeroes{};
-//	EXPECT_EQ(expected_program_counter, chip8.get_program_counter());
+	EXPECT_EQ(opcode, chip8.get_current_opcode());
+	const Chip8Test::Bit16 expected_program_counter{0x0200 + 2};
+	const std::array<Chip8Test::Bit8, Chip8Test::width_in_pixels*Chip8Test::height_in_pixels> zeroes{};
+	EXPECT_EQ(expected_program_counter, chip8.get_program_counter());
+	EXPECT_TRUE(chip8.get_draw_flag());
 }
+
