@@ -79,6 +79,12 @@ public:
 	{
 		return 0x200;
 	}
+
+	void set_register_value(int register_index, unsigned char value)
+	{
+		chip8.registers[register_index] = value;
+	}
+
 };
 
 
@@ -141,5 +147,22 @@ TEST(TestChip8, CallSubroutineAtAddress)
 	EXPECT_EQ(opcode, chip8.get_current_opcode());
 	EXPECT_EQ(0x0123, chip8.get_program_counter());
 	EXPECT_EQ(chip8.get_stack()[0], chip8.start_program_counter());
+}
+
+TEST(TestChip8, SkipValueIfRegisterValueIsEqualOpCodeValueTrue)
+{
+	Chip8Test chip8;
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	constexpr unsigned int opcode = 0x3EAB;
+	chip8.set_register_value(0xE,0xAB);
+	set_opcode_to_memory_index(opcode, memory, 0);
+	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(opcode, chip8.get_current_opcode());
+	// Skip instruction
+	constexpr int skip_instruction_constant{4};
+	EXPECT_EQ(chip8.get_program_counter(), chip8.start_program_counter()+skip_instruction_constant);
+
 }
 
