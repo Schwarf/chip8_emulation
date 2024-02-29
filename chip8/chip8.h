@@ -425,7 +425,7 @@ private:
 	std::array<Bit8, memory_in_bytes> memory{};
 	std::array<Bit8, number_of_registers> registers{};
 	std::array<Bit8, width_in_pixels * height_in_pixels> graphics{};
-	std::array<Bit8, number_of_stack_levels> stack{};
+	std::array<Bit16, number_of_stack_levels> stack{};
 	std::array<Bit8, number_of_keys> keypad{};
 	std::unordered_map<int, std::function<void()>> opcodeMap;
 	std::unordered_map<int, std::function<void()>> twoRegisterOperationsMap;

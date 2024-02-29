@@ -65,7 +65,7 @@ public:
 		return chip8.graphics;
 	}
 
-	const std::array<Bit8, number_of_stack_levels> & get_stack() const
+	const std::array<Bit16, number_of_stack_levels> & get_stack() const
 	{
 		return chip8.stack;
 	}
@@ -75,6 +75,10 @@ public:
 		return chip8.keypad;
 	}
 
+	static constexpr Bit16 start_program_counter()
+	{
+		return 0x200;
+	}
 };
 
 
@@ -93,6 +97,7 @@ TEST(TestChip8, SetProgramCounterToAddress)
 	constexpr unsigned int opcode = 0x1111;
 	set_opcode_to_memory_index(opcode, memory, 0);
 	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
 	chip8.chip8.emulateCycle();
 	const Chip8Test::Bit16 expected_program_counter{0x0111};
 	EXPECT_EQ(opcode, chip8.get_current_opcode());
@@ -112,11 +117,29 @@ TEST(TestChip8, ClearGraphics)
 	chip8.set_graphics(ones);
 	EXPECT_EQ(chip8.get_graphics(), ones);
 	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
 	chip8.chip8.emulateCycle();
 	EXPECT_EQ(opcode, chip8.get_current_opcode());
 	const Chip8Test::Bit16 expected_program_counter{0x0200 + 2};
 	const std::array<Chip8Test::Bit8, Chip8Test::width_in_pixels*Chip8Test::height_in_pixels> zeroes{};
 	EXPECT_EQ(expected_program_counter, chip8.get_program_counter());
 	EXPECT_TRUE(chip8.get_draw_flag());
+}
+
+
+TEST(TestChip8, CallSubroutineAtAddress)
+{
+	Chip8Test chip8;
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	constexpr unsigned int opcode = 0x2123;
+	set_opcode_to_memory_index(opcode, memory, 0);
+	chip8.load_memory(memory);
+
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+	EXPECT_EQ(chip8.get_stack()[0], 0);
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(opcode, chip8.get_current_opcode());
+	EXPECT_EQ(0x0123, chip8.get_program_counter());
+	EXPECT_EQ(chip8.get_stack()[0], chip8.start_program_counter());
 }
 
