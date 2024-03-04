@@ -149,7 +149,7 @@ TEST(TestChip8, CallSubroutineAtAddress)
 	EXPECT_EQ(chip8.get_stack()[0], chip8.start_program_counter());
 }
 
-TEST(TestChip8, SkipValueIfRegisterValueIsEqualOpCodeValueTrue)
+TEST(TestChip8, SkipValueIfRegisterValueIsEqualOpCodeValue)
 {
 	Chip8Test chip8;
 	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
@@ -169,7 +169,7 @@ TEST(TestChip8, SkipValueIfRegisterValueIsEqualOpCodeValueTrue)
 
 }
 
-TEST(TestChip8, NotSkipValueIfRegisterValueIsEqualOpCodeValueFalse)
+TEST(TestChip8, NotSkipValueIfRegisterValueIsEqualOpCodeValue)
 {
 	Chip8Test chip8;
 	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
@@ -182,8 +182,47 @@ TEST(TestChip8, NotSkipValueIfRegisterValueIsEqualOpCodeValueFalse)
 	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
 	chip8.chip8.emulateCycle();
 	EXPECT_EQ(opcode, chip8.get_current_opcode());
-	// Skip instruction
+	// do not skip instruction
 	constexpr int no_skip_instruction_constant{2};
 	EXPECT_EQ(chip8.get_program_counter(), chip8.start_program_counter()+no_skip_instruction_constant);
 
 }
+
+TEST(TestChip8, SkipValueIfRegisterValueIsNOTEqualOpCodeValue)
+{
+	Chip8Test chip8;
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	constexpr unsigned int opcode = 0x4EAB;
+	constexpr int register_index{0xE};
+	constexpr Chip8Test::Bit8 valid_register_value{0xAC};
+	chip8.set_register_value(register_index, valid_register_value);
+	set_opcode_to_memory_index(opcode, memory, 0);
+	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(opcode, chip8.get_current_opcode());
+	// Skip instruction
+	constexpr int skip_instruction_constant{4};
+	EXPECT_EQ(chip8.get_program_counter(), chip8.start_program_counter()+skip_instruction_constant);
+
+}
+
+TEST(TestChip8, DoNotSkipValueIfRegisterValueIsEqualOpCodeValue)
+{
+	Chip8Test chip8;
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	constexpr unsigned int opcode = 0x4EAB;
+	constexpr int register_index{0xE};
+	constexpr Chip8Test::Bit8 invalid_register_value{0xAB};
+	chip8.set_register_value(register_index, invalid_register_value);
+	set_opcode_to_memory_index(opcode, memory, 0);
+	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(opcode, chip8.get_current_opcode());
+	// do not skip instruction
+	constexpr int not_skip_instruction_constant{2};
+	EXPECT_EQ(chip8.get_program_counter(), chip8.start_program_counter()+not_skip_instruction_constant);
+
+}
+
