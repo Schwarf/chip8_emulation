@@ -267,5 +267,25 @@ TEST(TestChip8, DoNotSkipInstructionIfNothRegisterValueAreNotEqual)
 	// do not skip instruction
 	constexpr int not_skip_instruction_constant{2};
 	EXPECT_EQ(chip8.get_program_counter(), chip8.start_program_counter()+not_skip_instruction_constant);
+}
+
+TEST(TestChip8, SetValueInRegister)
+{
+	constexpr int not_skip_instruction_constant{2};
+	for(unsigned int i = 0x6000; i <= 0x6FFF; ++i)
+	{
+		Chip8Test chip8;
+		std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+		const unsigned int opcode = i;
+		const int register_index  = static_cast<int>((i & 0x0F00)) >> 8;
+		const Chip8Test::Bit8 value = (i & 0xFF);
+		set_opcode_to_memory_index(opcode, memory, 0);
+		chip8.load_memory(memory);
+		EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+		chip8.chip8.emulateCycle();
+		EXPECT_EQ(opcode, chip8.get_current_opcode());
+		EXPECT_EQ(chip8.get_program_counter(), chip8.start_program_counter()+not_skip_instruction_constant);
+		EXPECT_EQ(chip8.get_register_value(register_index), value);
+	}
 
 }
