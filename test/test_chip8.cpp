@@ -377,3 +377,69 @@ TEST(TestChip8, TwoRegisterOperationsAssignORValueinRegister5ToRegister0)
 	EXPECT_NE(chip8.get_register_value(register_index0), 0xAA);
 	EXPECT_EQ(chip8.get_register_value(register_index0), 0xAB);
 }
+
+TEST(TestChip8, TwoRegisterOperationsAssignANDValueinRegister5ToRegister0)
+{
+	constexpr int not_skip_instruction_constant{2};
+	// set value 0xAA in register 0
+	constexpr int opcode_register0{0x60AA};
+	// set value 0x21 in register 5
+	constexpr int opcode_register5{0x6521};
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	Chip8Test chip8;
+	constexpr int register_index0{};
+	constexpr int register_index5{5};
+	set_opcode_to_memory_index(opcode_register0, memory, 0);
+	set_opcode_to_memory_index(opcode_register5, memory, 2);
+	constexpr int opcode_assign_register5_to_register0{0x8052};
+	set_opcode_to_memory_index(opcode_assign_register5_to_register0, memory, 4);
+	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0);
+	chip8.chip8.emulateCycle();
+	EXPECT_NE(chip8.get_register_value(register_index0), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0);
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_NE(chip8.get_register_value(register_index5), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0x21);
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0x21);
+	EXPECT_NE(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0x20);
+}
+
+TEST(TestChip8, TwoRegisterOperationsAssignXORValueinRegister5ToRegister0)
+{
+	constexpr int not_skip_instruction_constant{2};
+	// set value 0xAA in register 0
+	constexpr int opcode_register0{0x60AA};
+	// set value 0x21 in register 5
+	constexpr int opcode_register5{0x6521};
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	Chip8Test chip8;
+	constexpr int register_index0{};
+	constexpr int register_index5{5};
+	set_opcode_to_memory_index(opcode_register0, memory, 0);
+	set_opcode_to_memory_index(opcode_register5, memory, 2);
+	constexpr int opcode_assign_register5_to_register0{0x8053};
+	set_opcode_to_memory_index(opcode_assign_register5_to_register0, memory, 4);
+	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0);
+	chip8.chip8.emulateCycle();
+	EXPECT_NE(chip8.get_register_value(register_index0), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0);
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_NE(chip8.get_register_value(register_index5), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0x21);
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0x21);
+	EXPECT_NE(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0x8B);
+}
