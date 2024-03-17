@@ -312,24 +312,35 @@ TEST(TestChip8, AddValueToRegister)
 
 }
 
-TEST(TestChip8, TwoRegisterOperations)
+TEST(TestChip8, TwoRegisterOperationsAsiignValueinRegister5ToRegister0)
 {
 	constexpr int not_skip_instruction_constant{2};
-	for(unsigned int i = 0x7011; i <= 0x7F11; i+=0xFF)
-	{
-		Chip8Test chip8;
-		std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
-		const unsigned int opcode = i;
-		const int register_index  = static_cast<int>((i & 0x0F00)) >> 8;
-		const Chip8Test::Bit8 result = (i & 0xFF);
-		set_opcode_to_memory_index(opcode, memory, 0);
-		chip8.load_memory(memory);
-		EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
-		EXPECT_EQ(chip8.get_register_value(register_index), 0);
-		chip8.chip8.emulateCycle();
-		EXPECT_EQ(opcode, chip8.get_current_opcode());
-		EXPECT_EQ(chip8.get_program_counter(), chip8.start_program_counter()+not_skip_instruction_constant);
-		EXPECT_EQ(chip8.get_register_value(register_index), result);
-	}
-
+	// set value 0xAA in register 0
+	constexpr int opcode_register0{0x60AA};
+	// set value 0x21 in register 5
+	constexpr int opcode_register5{0x6521};
+	std::array<Chip8Test::Bit8, Chip8Test::memory_in_bytes -Chip8Test::memory_offset> memory{};
+	Chip8Test chip8;
+	constexpr int register_index0{};
+	constexpr int register_index5{5};
+	set_opcode_to_memory_index(opcode_register0, memory, 0);
+	set_opcode_to_memory_index(opcode_register5, memory, 2);
+	constexpr int opcode_assign_register5_to_register0{0x8050};
+	set_opcode_to_memory_index(opcode_assign_register5_to_register0, memory, 4);
+	chip8.load_memory(memory);
+	EXPECT_EQ(chip8.start_program_counter(), chip8.get_program_counter());
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0);
+	chip8.chip8.emulateCycle();
+	EXPECT_NE(chip8.get_register_value(register_index0), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0);
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_NE(chip8.get_register_value(register_index5), 0);
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0x21);
+	chip8.chip8.emulateCycle();
+	EXPECT_EQ(chip8.get_register_value(register_index5), 0x21);
+	EXPECT_NE(chip8.get_register_value(register_index0), 0xAA);
+	EXPECT_EQ(chip8.get_register_value(register_index0), 0x21);
 }
