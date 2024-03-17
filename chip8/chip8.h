@@ -30,11 +30,11 @@ public:
 		initializeTwoRegisterOperations();
 	}
 
-	void load_memory(const std::array<Bit8, memory_in_bytes-512> & memory_to_load)
+	void load_memory(const std::array<Bit8, memory_in_bytes - 512> &memory_to_load)
 	{
 		// first 512 bytes are reserved for interpreter
-		for(int i{}; i < memory_in_bytes-512; ++i)
-			memory[i+512] = memory_to_load[i];
+		for (int i{}; i < memory_in_bytes - 512; ++i)
+			memory[i + 512] = memory_to_load[i];
 	}
 
 	std::vector<Bit8> load_program(const std::string &filename)
@@ -82,7 +82,7 @@ public:
 
 		register_index1 = (current_opcode & 0x0F00) >> 8;
 		register_index2 = (current_opcode & 0x00F0) >> 4;
-		auto choose =  current_opcode & 0xF000;
+		auto choose = current_opcode & 0xF000;
 		opcodeMap[choose]();
 		if (delayed_timer > 0)
 			--delayed_timer;
@@ -118,8 +118,7 @@ private:
 	void externalActions()
 	{
 		const int operation_index = current_opcode & 0x00FF;
-		if(externalActionOperations.find(operation_index) ==  externalActionOperations.end())
-		{
+		if (externalActionOperations.find(operation_index) == externalActionOperations.end()) {
 			throw std::out_of_range("Invalid action in external actions");
 		}
 		externalActionOperations[operation_index]();
@@ -144,56 +143,63 @@ private:
 	void initializeExternalActions()
 	{
 		// FX07: Sets VX to the value of the delay timer
-		externalActionOperations[0x0007] = [this](){
+		externalActionOperations[0x0007] = [this]()
+		{
 			registers[register_index1] = delayed_timer;
 		};
 		// FX0A: A key press is awaited, and then stored in VX
-		externalActionOperations[0x000A] = [this](){
+		externalActionOperations[0x000A] = [this]()
+		{
 			bool isKeyPressed{false};
 
-			for(int key{} ; key < number_of_keys; ++key)
-			{
-				if(keypad[key] != 0)
-				{
+			for (int key{}; key < number_of_keys; ++key) {
+				if (keypad[key] != 0) {
 					registers[register_index1] = key;
 					isKeyPressed = true;
 				}
 			}
 
 			// If we didn't received a keypress, skip this cycle and try again.
-			if(!isKeyPressed)
+			if (!isKeyPressed)
 				return;
 		};
 		// FX15: Sets the delay timer to to register with index given at X
-		externalActionOperations[0x0015] = [this](){
+		externalActionOperations[0x0015] = [this]()
+		{
 			delayed_timer = registers[register_index1];
 		};
 		// FX18: Sets the sound timer to register with index given at X
-		externalActionOperations[0x0018] = [this](){
+		externalActionOperations[0x0018] = [this]()
+		{
 			sound_timer = registers[register_index1];
 		};
 		// FX1E: Add register value given at index X to index_register
-		externalActionOperations[0x001E] = [this](){
-			registers[number_of_registers-1] = 0;
-			if(index_register + registers[register_index1] > 0xFFF)	// Last register is set to 1 if range overflow (index_register + regsiter[X] +>0xFFF), and 0 when there isn't.
+		externalActionOperations[0x001E] = [this]()
+		{
+			registers[number_of_registers - 1] = 0;
+			if (index_register + registers[register_index1]
+				> 0xFFF)    // Last register is set to 1 if range overflow (index_register + regsiter[X] +>0xFFF), and 0 when there isn't.
 			{
-				registers[number_of_registers-1] = 1;
+				registers[number_of_registers - 1] = 1;
 			}
 
 			index_register += registers[register_index1];
 		};
 		// FX29: Sets index_register to the location of the sprite for the character in register X. Characters 0-F (in hexadecimal) are represented by a 4x5 font
-		externalActionOperations[0x0029] = [this](){
+		externalActionOperations[0x0029] = [this]()
+		{
 			index_register = registers[register_index1] * 0x5;
 		};
 		// FX33: Stores the Binary-coded decimal representation of register X at the addresses index_register, index_register+1, and index_register+2
-		externalActionOperations[0x0033] = [this](){
+		externalActionOperations[0x0033] = [this]()
+		{
 			memory[index_register + 2] = registers[register_index1] % 10; // last digit
 			memory[index_register + 1] = (registers[register_index1] / 10) % 10;
-			memory[index_register]     = registers[register_index1] / 100; // first digit
+			memory[index_register] = registers[register_index1] / 100; // first digit
 		};
 		// FX55: Stores value in register 0 to  register X in memory starting at address index_register
-		externalActionOperations[0x055] = [this](){
+		externalActionOperations[0x055] = [this]()
+		{
 			for (int i{}; i <= register_index1; ++i)
 				memory[index_register + i] = registers[i];
 			// On the original interpreter, when the operation is done, register_index = register_index + X + 1.
@@ -201,7 +207,8 @@ private:
 
 		};
 		// FX65: Fills register 0 to register X with values from memory starting at address I
-		externalActionOperations[0x065] = [this](){
+		externalActionOperations[0x065] = [this]()
+		{
 			for (int i{}; i <= register_index1; ++i)
 				registers[i] = memory[index_register + i];
 			// On the original interpreter, when the operation is done, register_index = register_index + X + 1.
@@ -212,14 +219,22 @@ private:
 
 	void initializeTwoRegisterOperations()
 	{
+		// Assign value stored in register_index2 to storage of register_index1
 		twoRegisterOperationsMap[0] = [this]()
 		{ registers[register_index1] = registers[register_index2]; };
+
+		// Assign-OR value stored in register_index1 with value of register_index1
 		twoRegisterOperationsMap[1] = [this]()
-		{ registers[register_index1] = registers[register_index2] | registers[register_index1]; };
+		{ registers[register_index1] |= registers[register_index2]; };
+
+		// Assign-AND value stored in register_index1 with value of register_index1
 		twoRegisterOperationsMap[2] = [this]()
-		{registers[register_index1] = registers[register_index2] & registers[register_index1];};
+		{ registers[register_index1] &= registers[register_index2]; };
+
+		// Assign-XOR value stored in register_index1 with value of register_index1
 		twoRegisterOperationsMap[3] = [this]()
-		{ registers[register_index1] = registers[register_index2] ^ registers[register_index1]; };
+		{ registers[register_index1] ^= registers[register_index2]; };
+
 		twoRegisterOperationsMap[4] = [this]()
 		{
 			// max value is 0xFF. if value stored in index2 is greater than 0xFF minus value stored in index1 we have a carry
@@ -276,18 +291,16 @@ private:
 		// clear screen
 		opcodeMap[0x0000] = [this]()
 		{
-			if((current_opcode & 0x000F) == 0) {
+			if ((current_opcode & 0x000F) == 0) {
 				std::fill(graphics.begin(), graphics.end(), 0);
 				draw_flag = true;
 			}
-			else if ((current_opcode & 0x000F) == 0x000E)
-			{
+			else if ((current_opcode & 0x000F) == 0x000E) {
 				--stack_pointer;
 				program_counter = stack[stack_pointer];
 
 			}
-			else
-			{
+			else {
 				throw std::out_of_range("Unknown opcode for: (opcode & 0x000F) == 0");
 			}
 		};
